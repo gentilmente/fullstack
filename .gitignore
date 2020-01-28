@@ -1,4 +1,5 @@
 *.sqlite
+*.env
 *.idea/*
 *.idea
 *.idea/.*
