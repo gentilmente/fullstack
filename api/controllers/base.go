@@ -12,6 +12,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres" //postgres database driver
 	_ "github.com/jinzhu/gorm/dialects/sqlite"   // sqlite database driver
 	"github.com/victorsteven/fullstack/api/models"
+	"github.com/victorsteven/fullstack/api/seed"
 )
 
 type Server struct {
@@ -44,7 +45,6 @@ func (server *Server) Initialize(Dbdriver, DbUser, DbPassword, DbPort, DbHost, D
 		}
 	}
 	if Dbdriver == "sqlite3" {
-		//DBURL := fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=disable password=%s", DbHost, DbPort, DbUser, DbName, DbPassword)
 		server.DB, err = gorm.Open(Dbdriver, DbName)
 		if err != nil {
 			fmt.Printf("Cannot connect to %s database\n", Dbdriver)
@@ -55,7 +55,16 @@ func (server *Server) Initialize(Dbdriver, DbUser, DbPassword, DbPort, DbHost, D
 		server.DB.Exec("PRAGMA foreign_keys = ON")
 	}
 
-	server.DB.Debug().AutoMigrate(&models.User{}, &models.Post{}) //database migration
+	err = server.DB.Debug().AutoMigrate(&models.User{}, &models.Post{}).Error
+	if err != nil {
+		log.Fatalf("cannot migrate table: %v", err)
+	} else {
+		var result int64
+		server.DB.Debug().Table("users").Count(&result)
+		if result == 0 {
+			seed.Load(server.DB)
+		}
+	}
 
 	server.Router = mux.NewRouter()
 
